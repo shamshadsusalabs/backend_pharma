@@ -1,0 +1,258 @@
+const fs = require('fs');
+const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const File = require('../Schema/File');
+
+const savingBillFile = async (req, res) => {
+    try {
+        // console.log('Received Billing Data:', req.body);
+
+        const { patientName, doctorName, AdharCardNumber, date, address, ContactNumber, gst, discount, totalAmount, rows, userId, userDetails } = req.body;
+
+        // Generate the HTML content using the provided data with the updated CSS design
+        let htmlContent = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Invoice Clone</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #f5f5f5;
+                    }
+
+                    .invoice-container {
+                        max-width: 900px;
+                        margin: 20px auto;
+                        border: 2px solid red;
+                        background-color: #fff;
+                        padding: 20px;
+                    }
+
+                    .header {
+                        text-align: center;
+                        border-bottom: 2px solid red;
+                        padding-bottom: 10px;
+                    }
+
+                    .header h1 {
+                        font-size: 20px;
+                        margin: 0;
+                    }
+
+                    .header p {
+                        margin: 5px 0;
+                        font-size: 14px;
+                        font-weight: bold;
+                    }
+
+                    .sub-header {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-top: 10px;
+                        font-size: 12px;
+                    }
+
+                    .sub-header div {
+                        width: 48%;
+                    }
+
+                    .details {
+                        margin-top: 20px;
+                    }
+
+                    .details table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+
+                    .details th,
+                    .details td {
+                        border: 1px solid #000;
+                        padding: 8px;
+                        text-align: center;
+                        font-size: 12px;
+                    }
+
+                    .details th {
+                        background-color: #f0f0f0;
+                    }
+
+                    .totals {
+                        margin-top: 20px;
+                        text-align: right;
+                    }
+
+                    .totals table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+
+                    .totals th,
+                    .totals td {
+                        border: 1px solid #000;
+                        padding: 8px;
+                        text-align: right;
+                        font-size: 12px;
+                    }
+
+                    .totals th {
+                        background-color: #f0f0f0;
+                    }
+
+                    .totals .highlight {
+                        font-weight: bold;
+                        background-color: #e0e0e0;
+                    }
+
+                    .footer {
+                        margin-top: 20px;
+                        font-size: 12px;
+                        text-align: left;
+                        line-height: 1.6;
+                    }
+
+                    .footer p {
+                        margin: 5px 0;
+                    }
+
+                    .footer .signature {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-top: 20px;
+                    }
+
+                    .footer .signature div {
+                        text-align: center;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="invoice-container">
+                    <div class="header">
+                        <h1>TAX INVOICE</h1>
+                        <p><strong>Shop Name:</strong> ${userDetails.shopName}</p>
+                        <p><strong>Address:</strong> ${userDetails.address || address}</p>
+                    </div>
+
+                    <div class="sub-header">
+                        <div>
+                            <p><strong>GSTIN:</strong> ${userDetails.gstNumber}</p>
+                            <p><strong>Licence No:</strong> ${userDetails.licenseNumber}</p>
+                            <p><strong>shopNAme:</strong> ${userDetails.shopName}</p>
+                             <p><strong>DoctorName :</strong> ${doctorName}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <p><strong>Invoice No:</strong> GMA-14</p>
+                            <p><strong>Date:</strong> ${date}</p>
+                            <p><strong>Phone:</strong> ${ContactNumber}</p>
+                             <p><strong>PatientName:</strong> ${patientName}</p>
+                        </div>
+                    </div>
+
+                    <div class="details">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sr.</th>
+                                    <th>Drug Name</th>
+                                    <th>Drug Code</th>
+                                    <th>Quantity</th>
+                                    <th>MRP</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rows.map((item, index) => `
+                                    <tr>
+                                        <td>${index + 1}</td>
+                                        <td>${item.drugName}</td>
+                                        <td>${item.drugCode}</td>
+                                        <td>${item.quantity}</td>
+                                        <td>${item.mrp}</td>
+                                        <td>${item.amount}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="totals">
+                        <table>
+                            <tr>
+                                <th>Total Amount</th>
+                                <td>${totalAmount}</td>
+                            </tr>
+                            <tr>
+                                <th>Discount</th>
+                                <td>${discount}%</td>
+                            </tr>
+                            <tr class="highlight">
+                                <th>Net Amount</th>
+                                <td>${totalAmount - (totalAmount * discount / 100)}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="footer">
+                        <p><strong>GST Applied:</strong> ${gst}%</p>
+                        <p>Thank you for your business!</p>
+                        <p>Invoice generated on: ${new Date().toLocaleDateString()}</p>
+
+                        <div class="signature">
+                            <div>
+                                <p><strong>Checked By</strong></p>
+                            </div>
+                            <div>
+                                <p><strong>Packed By</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        // Write the HTML content to a temporary file
+        const filePath = path.join(__dirname, '../invoices', `invoice_${new Date().getTime()}.html`);
+        fs.writeFileSync(filePath, htmlContent);
+
+        // Upload the file to Cloudinary
+        const cloudinaryResponse = await cloudinary.uploader.upload(filePath, {
+            resource_type: "auto",  // Automatically determines the file type
+            folder: "invoices"      // Cloudinary folder where the file will be stored
+        });
+
+        // Generate file URL from Cloudinary response
+        const fileUrl = cloudinaryResponse.secure_url;
+
+        // Optionally, save the file path, file name, and URL in the database
+        const newFile = new File({
+            filePath: cloudinaryResponse.public_id,  // Save the public ID returned by Cloudinary
+            fileName: `invoice_${new Date().getTime()}.html`,  // You can also store the original file name
+            userId: userDetails.id,  // Assuming userDetails contains the user ID
+            fileUrl: fileUrl,  // Save the file URL from Cloudinary
+        });
+
+        await newFile.save();
+
+        // Delete the temporary file from the local server
+        fs.unlinkSync(filePath);
+
+        // Send the file URL as a response
+        res.json({ message: 'Invoice saved successfully!', fileUrl });
+
+    } catch (error) {
+        console.error('Error saving the bill file:', error);
+        res.status(500).json({ message: 'Error saving the bill file' });
+    }
+};
+
+module.exports = {
+    savingBillFile
+};
+ 

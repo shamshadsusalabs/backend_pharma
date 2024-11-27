@@ -1,5 +1,66 @@
 const Store = require("../Schema/Store");
 
+
+
+// Update stock by drugCode
+exports.updateDrugStock = async (req, res) => {
+  try {
+    const { updates } = req.body;
+
+    // Validate input
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ message: "Invalid updates array" });
+    }
+
+    for (const update of updates) {
+      const { drugCode, quantity } = update;
+
+      // Find the store and the drug containing the required drugCode
+      const store = await Store.findOne({
+        "distributorSupplied.drugCode": drugCode,
+      });
+
+      if (!store) {
+        throw new Error(`Drug with code ${drugCode} not found in any store`);
+      }
+
+      // Locate the drug in the store's distributorSupplied array
+      const drug = store.distributorSupplied.find(
+        (d) => d.drugCode === drugCode
+      );
+
+      if (!drug) {
+        throw new Error(`Drug with code ${drugCode} not found`);
+      }
+
+      // Check if the stock is sufficient
+      if (drug.stock < quantity) {
+        throw new Error(
+          `Insufficient stock for drug ${drugCode}. Available: ${drug.stock}`
+        );
+      }
+
+      // Deduct the quantity from the drug's stock
+      drug.stock -= quantity;
+
+      // Save the updated store
+      await store.save();
+    }
+
+    res.status(200).json({ message: "Stock updated successfully" });
+  } catch (error) {
+    console.error("Error updating stock:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+
+
+
+
+
 // Create a new store
 exports.createStore = async (req, res) => {
   try {

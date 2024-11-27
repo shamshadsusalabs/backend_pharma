@@ -12,6 +12,6 @@ router.get("/getAllbyUserId/:userId", storeController.getAllStoresByUserId);
 // Routes for Drug Management in Store
 router.post("/:id/drugs", storeController.addDrugToStore); // Add a drug to a store
 router.get("/:id/drugs/expired", storeController.getExpiredDrugs); // Get expired drugs in a store
-
+router.post("/update-drug-stock", storeController.updateDrugStock);
 
 module.exports = router;

@@ -122,6 +122,10 @@ const login = async (req, res) => {
                 name: user.name,
                 contact: user.contact,
                 profile: user.profile,
+                gstNumber:user.gstNumber,
+                shopName:user.shopName,
+                licenseNumber:user.licenseNumber,   
+
             },
         });
     } catch (error) {

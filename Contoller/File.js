@@ -1,3 +1,4 @@
+const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
@@ -5,11 +6,9 @@ const File = require('../Schema/File');
 
 const savingBillFile = async (req, res) => {
     try {
-        // console.log('Received Billing Data:', req.body);
-
         const { patientName, doctorName, AdharCardNumber, date, address, ContactNumber, gst, discount, totalAmount, rows, userId, userDetails } = req.body;
 
-        // Generate the HTML content using the provided data with the updated CSS design
+        // Generate the HTML content using the provided data
         let htmlContent = `
             <!DOCTYPE html>
             <html lang="en">
@@ -143,14 +142,13 @@ const savingBillFile = async (req, res) => {
                         <div>
                             <p><strong>GSTIN:</strong> ${userDetails.gstNumber}</p>
                             <p><strong>Licence No:</strong> ${userDetails.licenseNumber}</p>
-                            <p><strong>shopNAme:</strong> ${userDetails.shopName}</p>
-                             <p><strong>DoctorName :</strong> ${doctorName}</p>
+                            <p><strong>Doctor Name:</strong> ${doctorName}</p>
                         </div>
                         <div style="text-align: right;">
                             <p><strong>Invoice No:</strong> GMA-14</p>
                             <p><strong>Date:</strong> ${date}</p>
                             <p><strong>Phone:</strong> ${ContactNumber}</p>
-                             <p><strong>PatientName:</strong> ${patientName}</p>
+                            <p><strong>Patient Name:</strong> ${patientName}</p>
                         </div>
                     </div>
 
@@ -217,31 +215,35 @@ const savingBillFile = async (req, res) => {
             </html>
         `;
 
-        // Write the HTML content to a temporary file
-        const filePath = path.join(__dirname, '../invoices', `invoice_${new Date().getTime()}.html`);
-        fs.writeFileSync(filePath, htmlContent);
+        // Create a temporary file
+        const tempFilePath = path.join(os.tmpdir(), `invoice_${new Date().getTime()}.html`);
+        fs.writeFileSync(tempFilePath, htmlContent);
 
         // Upload the file to Cloudinary
-        const cloudinaryResponse = await cloudinary.uploader.upload(filePath, {
-            resource_type: "auto",  // Automatically determines the file type
-            folder: "invoices"      // Cloudinary folder where the file will be stored
+        const cloudinaryResponse = await cloudinary.uploader.upload(tempFilePath, {
+            resource_type: "auto",
+            folder: "invoices"
         });
 
         // Generate file URL from Cloudinary response
         const fileUrl = cloudinaryResponse.secure_url;
 
-        // Optionally, save the file path, file name, and URL in the database
+        // Save the file details in the database
         const newFile = new File({
-            filePath: cloudinaryResponse.public_id,  // Save the public ID returned by Cloudinary
-            fileName: `invoice_${new Date().getTime()}.html`,  // You can also store the original file name
-            userId: userDetails.id,  // Assuming userDetails contains the user ID
-            fileUrl: fileUrl,  // Save the file URL from Cloudinary
+            filePath: cloudinaryResponse.public_id,
+            fileName: `invoice_${new Date().getTime()}.html`,
+            userId: userDetails.id,
+            fileUrl: fileUrl,
+            patientName:  patientName,
+            AdharCardNumber: AdharCardNumber,
+            date: date,
+            ContactNumber:ContactNumber
         });
 
         await newFile.save();
 
-        // Delete the temporary file from the local server
-        fs.unlinkSync(filePath);
+        // Delete the temporary file
+        fs.unlinkSync(tempFilePath);
 
         // Send the file URL as a response
         res.json({ message: 'Invoice saved successfully!', fileUrl });
@@ -252,7 +254,28 @@ const savingBillFile = async (req, res) => {
     }
 };
 
-module.exports = {
-    savingBillFile
+
+const getInvoicesByUserId = async (req, res) => {
+    try {
+        const { userId } = req.params; // Get userId from the route parameter
+
+        // Fetch all invoices for the given userId
+        const invoices = await File.find({ userId });
+
+        // Check if any invoices exist
+        if (invoices.length === 0) {
+            return res.status(404).json({ message: 'No invoices found for this user.' });
+        }
+
+        // Respond with the fetched invoices
+        res.status(200).json({ message: 'Invoices retrieved successfully!', invoices });
+    } catch (error) {
+        console.error('Error fetching invoices:', error);
+        res.status(500).json({ message: 'Error fetching invoices', error: error.message });
+    }
 };
- 
+
+module.exports = {
+    savingBillFile,
+    getInvoicesByUserId, // Export the new function
+};

@@ -10,7 +10,7 @@ const app = express();
 
 // Middleware to enable CORS
 app.use(cors({
-    origin: process.env.CLIENT_URL || "http://localhost:4200", // Change as needed
+    origin:[ process.env.CLIENT_URL || "http://localhost:4200","https://6748033e5e153421c2cb3839--clinquant-wisp-0a8f24.netlify.app" ],// Change as needed
     methods: "GET, POST, PUT, DELETE",
     credentials: true,  // Enable cookies to be sent along with the requests
 }));

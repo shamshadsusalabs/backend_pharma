@@ -10,7 +10,7 @@ const app = express();
 
 // Middleware to enable CORS
 app.use(cors({
-    origin:[ process.env.CLIENT_URL || "http://localhost:4200","https://67481acb56726c5023c0f22c--eloquent-pasca-84ea27.netlify.app" ],// Change as needed
+    origin:[ process.env.CLIENT_URL || "http://localhost:4200","https://susapharma.netlify.app" ],// Change as needed
     methods: "GET, POST, PUT, DELETE",
     credentials: true,  // Enable cookies to be sent along with the requests
 }));

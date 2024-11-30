@@ -254,13 +254,12 @@ const savingBillFile = async (req, res) => {
     }
 };
 
-
 const getInvoicesByUserId = async (req, res) => {
     try {
         const { userId } = req.params; // Get userId from the route parameter
 
-        // Fetch all invoices for the given userId
-        const invoices = await File.find({ userId });
+        // Fetch and sort all invoices for the given userId in descending order by createdAt
+        const invoices = await File.find({ userId }).sort({ createdAt: -1 });
 
         // Check if any invoices exist
         if (invoices.length === 0) {
@@ -274,6 +273,7 @@ const getInvoicesByUserId = async (req, res) => {
         res.status(500).json({ message: 'Error fetching invoices', error: error.message });
     }
 };
+
 
 module.exports = {
     savingBillFile,

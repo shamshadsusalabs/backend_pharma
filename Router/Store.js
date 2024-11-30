@@ -14,4 +14,10 @@ router.post("/:id/drugs", storeController.addDrugToStore); // Add a drug to a st
 router.get("/:id/drugs/expired", storeController.getExpiredDrugs); // Get expired drugs in a store
 router.post("/update-drug-stock", storeController.updateDrugStock);
 
+
+router.get("/low-stock/:userId", storeController.getLowStockDrugs);
+router.get("/expiry-date/:userId", storeController.getLowStockDrugs);
+
+router.get("/get-drugs/:userId", storeController.getDynamicDrugs);
+
 module.exports = router;

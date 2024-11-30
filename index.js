@@ -38,7 +38,8 @@ app.use('/api/v1/expiryAlert',  expiryAlert );
 const storebilling = require('./Router/StoreBilling');  // Import the User router
 app.use('/api/v1/storebilling',  storebilling  );
 
-
+const PurchaseFile = require('./Router/PurchaseFile');  // Import the User router
+app.use('/api/v1/PurchaseFile', PurchaseFile  );
 
 const FilebillingSaver = require('./Router/File');  // Import the User router
 app.use('/api/v1/File', FilebillingSaver  );

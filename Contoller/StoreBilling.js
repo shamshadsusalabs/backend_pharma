@@ -111,21 +111,22 @@ exports.deleteBilling = async (req, res) => {
 // Get all billing records for a specific userId
 exports.getBillingsByUserId = async (req, res) => {
   try {
-    const { userId } = req.params;  // Extract the userId from the request parameters
+    const { userId } = req.params; // Extract the userId from the request parameters
 
-    // Find all billing records where userId matches
-    const billings = await Billing.find({ userId });
+    // Find all billing records where userId matches and sort them in descending order by createdAt
+    const billings = await Billing.find({ userId }).sort({ createdAt: -1 });
 
-    if (billings.length === 0) {
+    if (!billings.length) {
       return res.status(404).json({ message: 'No billing records found for this user' });
     }
 
     res.status(200).json({
       message: 'Fetched billing records successfully for user',
-      data: billings
+      data: billings,
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error fetching billing records for user' });
   }
 };
+

@@ -27,11 +27,14 @@ const drugSchema = new mongoose.Schema({
   drugName: {
     type: String,
     required: true,
+    unique: true,
+    index: true,
   },
   drugCode: {
     type: String,
     required: true,
-    unique: true, // Ensure drugCode is unique
+    unique: true, 
+    index: true,// Ensure drugCode is unique
   },
   batchNumber: {
     type: String,
@@ -44,6 +47,7 @@ const drugSchema = new mongoose.Schema({
   stock: {
     type: Number,
     required: true,
+    index:true
   },
   discount: {
     type: Number,
@@ -70,6 +74,7 @@ const drugSchema = new mongoose.Schema({
  
 }, { timestamps: true });
 drugSchema.index({ drugCode: 1 });
+drugSchema.index({ drugName: 1 });
 // Removed virtual field for expiry check
 
 const supplyDetailsSchema = new mongoose.Schema({
@@ -92,7 +97,8 @@ const storeSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,  // ObjectId type to reference another document
     ref: 'User',  // Reference to the User model
-    required: true,  // Ensure the user reference is mandatory
+    required: true, 
+    index: true, // Ensure the user reference is mandatory
   },
   supplier: [supplyDetailsSchema],
   distributorSupplied: [drugSchema], // Embedded Drug Schema

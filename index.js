@@ -43,6 +43,10 @@ app.use('/api/v1/PurchaseFile', PurchaseFile  );
 
 const FilebillingSaver = require('./Router/File');  // Import the User router
 app.use('/api/v1/File', FilebillingSaver  );
+
+
+const Discount = require('./Router/Discount');  // Import the User router
+app.use('/api/v1/',  Discount  );
 // Example route to check if the server is running
 app.get("/", (req, res) => {
     res.send("Hello, world!");

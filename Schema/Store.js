@@ -40,6 +40,18 @@ const drugSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  strip:{
+    type: Number,
+    required: true,
+  },
+  perStripQuantity:{
+    type: Number,
+    required: false,
+  },
+  perStripPrice:{
+    type: Number,
+    required: true,
+  },
   price: {
     type: Number,
     required: true,
@@ -71,6 +83,11 @@ const drugSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  typeofSack:{
+    type: String,
+    required: true,
+
+  }
  
 }, { timestamps: true });
 drugSchema.index({ drugCode: 1 });

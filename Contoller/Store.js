@@ -7,20 +7,10 @@ const path = require("path");
 const Store = require("../Schema/Store");
 const mongoose = require("mongoose");
 
-
-
-// Escape special characters in search criteria
-const escapeRegex = (text) => {
-  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"); // Escape special regex characters
-};
-
-// Function to dynamically get drugs based on userId and search terms (drug names or drug codes)
 exports.getDynamicDrugs = async (req, res) => {
   const { userId } = req.params; // Extract userId from URL params
- 
   
   let { searchCriteria } = req.query; // Extract search criteria from query string
-  
 
   // Check if searchCriteria is provided, return error if not
   if (!searchCriteria) {
@@ -31,15 +21,12 @@ exports.getDynamicDrugs = async (req, res) => {
   // Ensure searchCriteria is an array if it's a single string
   if (typeof searchCriteria === 'string') {
     searchCriteria = [searchCriteria]; // Convert string to array if it's a single string
-   
   }
 
   // Escape special characters in search criteria terms
   const regexPattern = searchCriteria.map(term => escapeRegex(term)).join('|');
 
-
   const regexSearch = new RegExp(regexPattern, "i"); // Case-insensitive regex
-
 
   try {
     // Use aggregation for more efficient querying and mapping
@@ -70,14 +57,14 @@ exports.getDynamicDrugs = async (req, res) => {
         }
       },
       {
-        $project: { // Clean up the result and return only the drug name and code
+        $project: { // Clean up the result and return the desired fields
           drugName: "$distributorSupplied.drugName",
-          drugCode: "$distributorSupplied.drugCode"
+          drugCode: "$distributorSupplied.drugCode",
+          perStripPrice: "$distributorSupplied.perStripPrice",
+         perStripQuantity: "$distributorSupplied.perStripQuantity"  // Add this field to the projection
         }
       }
     ]);
-
-   
 
     if (results.length > 0) {
       return res.status(200).json({ success: true, drugs: results });
@@ -89,91 +76,6 @@ exports.getDynamicDrugs = async (req, res) => {
     res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
-
-
-
-exports.getExpiringDrugs = async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    // Validate userId (Check if it's a valid MongoDB ObjectId)
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: "Valid User ID is required" });
-    }
-
-    // Get current date (today) in UTC format
-    const currentDate = new Date();
-    currentDate.setUTCHours(0, 0, 0, 0);  // Set time to midnight for today
-
-    // Calculate the date 1 month from today
-    const oneMonthFromNow = new Date(currentDate);
-    oneMonthFromNow.setMonth(currentDate.getMonth() + 1);
-    oneMonthFromNow.setUTCHours(23, 59, 59, 999); // Set time to end of day for next month
-
-    // Find stores with expired drugs or drugs expiring within the next month for the given user
-    const stores = await Store.aggregate([
-      { $match: { user: new mongoose.Types.ObjectId(userId) } },  // Match user
-      { $unwind: "$distributorSupplied" },  // Unwind the distributorSupplied array
-      { 
-        $match: {
-          $or: [
-            {
-              "distributorSupplied.expiryDate": { $lt: currentDate }  // Expired drugs
-            },
-            {
-              "distributorSupplied.expiryDate": { 
-                $gte: currentDate,  // Expiry date after or equal to today
-                $lt: oneMonthFromNow // Expiry date before the end of the next month
-              }
-            }
-          ]
-        }
-      },
-      { $project: { _id: 0, drug: "$distributorSupplied" } }  // Project the drug information
-    ]);
-
-    if (stores.length === 0) {
-      return res.status(404).json({ message: "No drugs expiring or expired within the next month found" });
-    }
-
-    res.status(200).json(stores.map(store => store.drug));
-  } catch (error) {
-    console.error("Error fetching expiring drugs:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-
-exports.getLowStockDrugs = async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    // Validate userId (Check if it's a valid MongoDB ObjectId)
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: "Valid User ID is required" });
-    }
-
-    // Find stores with low stock drugs (stock <= 500) for the given user
-    const stores = await Store.aggregate([
-      { $match: { user: new mongoose.Types.ObjectId(userId) } },  // Use 'new' for ObjectId
-      { $unwind: "$distributorSupplied" },
-      { $match: { "distributorSupplied.stock": { $lte: 500 } } },
-      { $project: { _id: 0, drug: "$distributorSupplied" } }
-    ]);
-
-    if (stores.length === 0) {
-      return res.status(404).json({ message: "No low stock drugs found" });
-    }
-
-    res.status(200).json(stores.map(store => store.drug));
-  } catch (error) {
-    console.error("Error fetching low stock drugs:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-
-
 
 
 
@@ -281,6 +183,9 @@ exports.createStore = async (req, res) => {
                                   <th>Drug Name</th>
                                   <th>Drug Code</th>
                                   <th>Batch Number</th>
+                                   <th>Strip</th>
+                                    <th>PerStripQuantity</th>
+                                     <th>PerStripPrice</th>
                                   <th>Price</th>
                                   <th>Stock</th>
                                   <th>Discount</th>
@@ -288,6 +193,7 @@ exports.createStore = async (req, res) => {
                                   <th>Manufacture Date</th>
                                   <th>Manufacturer</th>
                                   <th>Category</th>
+                                     <th>Sack</th>
                               </tr>
                           </thead>
                           <tbody>
@@ -297,6 +203,9 @@ exports.createStore = async (req, res) => {
                                       <td>${dist.drugName}</td>
                                       <td>${dist.drugCode}</td>
                                       <td>${dist.batchNumber}</td>
+                                        <td>${dist.strip}</td>
+                                          <td>${dist.perStripQuantity}</td>
+                                            <td>${dist. perStripPrice}</td>
                                       <td>${dist.price}</td>
                                       <td>${dist.stock}</td>
                                       <td>${dist.discount}</td>
@@ -304,6 +213,7 @@ exports.createStore = async (req, res) => {
                                       <td>${dist.manufactureDate}</td>
                                       <td>${dist.manufacturer}</td>
                                       <td>${dist.category}</td>
+                                       <td>${dist.typeofSack}</td>
                                   </tr>
                               `
                               ).join("")}
@@ -358,25 +268,131 @@ exports.createStore = async (req, res) => {
 };
 
 
+// Escape special characters in search criteria
+const escapeRegex = (text) => {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"); // Escape special regex characters
+};
+
+// Function to dynamically get drugs based on userId and search terms (drug names or drug codes)
+
+
+
+exports.getExpiringDrugs = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Validate userId (Check if it's a valid MongoDB ObjectId)
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Valid User ID is required" });
+    }
+
+    // Get current date (today) in UTC format
+    const currentDate = new Date();
+    currentDate.setUTCHours(0, 0, 0, 0);  // Set time to midnight for today
+
+    // Calculate the date 1 month from today
+    const oneMonthFromNow = new Date(currentDate);
+    oneMonthFromNow.setMonth(currentDate.getMonth() + 1);
+    oneMonthFromNow.setUTCHours(23, 59, 59, 999); // Set time to end of day for next month
+
+    // Find stores with expired drugs or drugs expiring within the next month for the given user
+    const stores = await Store.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },  // Match user
+      { $unwind: "$distributorSupplied" },  // Unwind the distributorSupplied array
+      { 
+        $match: {
+          $or: [
+            {
+              "distributorSupplied.expiryDate": { $lt: currentDate }  // Expired drugs
+            },
+            {
+              "distributorSupplied.expiryDate": { 
+                $gte: currentDate,  // Expiry date after or equal to today
+                $lt: oneMonthFromNow // Expiry date before the end of the next month
+              }
+            }
+          ]
+        }
+      },
+      { $project: { _id: 0, drug: "$distributorSupplied" } }  // Project the drug information
+    ]);
+
+    // Instead of 404, return 200 with an empty array if no expiring or expired drugs are found
+    if (stores.length === 0) {
+      return res.status(200).json([]);  // Return empty array with 200 status
+    }
+
+    // Send the found expiring or expired drugs
+    res.status(200).json(stores.map(store => store.drug));
+  } catch (error) {
+    console.error("Error fetching expiring drugs:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+exports.getLowStockDrugs = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Validate userId (Check if it's a valid MongoDB ObjectId)
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Valid User ID is required" });
+    }
+
+    // Find stores with low stock drugs (stock <= 500) for the given user
+    const stores = await Store.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },  // Use 'new' for ObjectId
+      { $unwind: "$distributorSupplied" },
+      { $match: { "distributorSupplied.stock": { $lte: 500 } } },
+      { $project: { _id: 0, drug: "$distributorSupplied" } }
+    ]);
+
+    // Instead of 404, return 200 with an empty array if no low stock drugs are found
+    if (stores.length === 0) {
+      return res.status(200).json([]);  // Return empty array with 200 status
+    }
+
+    // Send the found low stock drugs
+    res.status(200).json(stores.map(store => store.drug));
+  } catch (error) {
+    console.error("Error fetching low stock drugs:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+
+
+
+
+
 // Update stock by drugCode
 exports.updateDrugStock = async (req, res) => {
   try {
+
+
     const { updates } = req.body;
+
 
     // Validate input
     if (!Array.isArray(updates) || updates.length === 0) {
+      console.log("Validation failed: updates is not a valid array or is empty");
       return res.status(400).json({ message: "Invalid updates array" });
     }
 
     for (const update of updates) {
-      const { drugCode, quantity } = update;
+      const { drugCode, quantity, strip } = update;
+     
 
       // Find the store and the drug containing the required drugCode
       const store = await Store.findOne({
         "distributorSupplied.drugCode": drugCode,
       });
 
+
       if (!store) {
+      
         throw new Error(`Drug with code ${drugCode} not found in any store`);
       }
 
@@ -384,31 +400,53 @@ exports.updateDrugStock = async (req, res) => {
       const drug = store.distributorSupplied.find(
         (d) => d.drugCode === drugCode
       );
+     
 
       if (!drug) {
+        console.log(`Drug with code ${drugCode} not found`);
         throw new Error(`Drug with code ${drugCode} not found`);
       }
 
-      // Check if the stock is sufficient
       if (drug.stock < quantity) {
+        console.log(
+          `Insufficient stock for drug ${drugCode}. Available: ${drug.stock}`
+        );
         throw new Error(
           `Insufficient stock for drug ${drugCode}. Available: ${drug.stock}`
         );
       }
 
-      // Deduct the quantity from the drug's stock
+      // If strip is provided, check if it's sufficient; if not, skip strip validation
+      if (strip !== undefined && drug.strip < strip) {
+        console.log(
+          `Insufficient strip for drug ${drugCode}. Available: ${drug.strip}`
+        );
+        throw new Error(
+          `Insufficient strip for drug ${drugCode}. Available: ${drug.strip}`
+        );
+      }
+
+      // Deduct the quantity (and strip, if provided) from the drug's stock
       drug.stock -= quantity;
+      if (strip !== undefined) {
+        drug.strip -= strip;
+      }
+     
 
       // Save the updated store
       await store.save();
+     
     }
 
+ 
     res.status(200).json({ message: "Stock updated successfully" });
   } catch (error) {
     console.error("Error updating stock:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
+
+
 
 
 

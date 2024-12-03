@@ -159,6 +159,7 @@ const savingBillFile = async (req, res) => {
                                     <th>Sr.</th>
                                     <th>Drug Name</th>
                                     <th>Drug Code</th>
+                                     <th>Strip</th>
                                     <th>Quantity</th>
                                     <th>MRP</th>
                                     <th>Amount</th>
@@ -170,6 +171,7 @@ const savingBillFile = async (req, res) => {
                                         <td>${index + 1}</td>
                                         <td>${item.drugName}</td>
                                         <td>${item.drugCode}</td>
+                                         <td>${item.strip}</td>
                                         <td>${item.quantity}</td>
                                         <td>${item.mrp}</td>
                                         <td>${item.amount}</td>

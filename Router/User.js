@@ -12,7 +12,7 @@ router.post("/register", upload.fields([
 router.post("/login", login);
 
 // Protected routes (Require authentication)
-router.post("/logout", logout);
+router.post("/logout",  authenticateToken ,logout);
 
 
 module.exports = router;

@@ -14,4 +14,6 @@ router.put('/discounts/:userId', distributorController.updateDistributor);
 // Route to delete distributor by userId
 router.delete('/discounts/:_id', distributorController.deleteDistributor);
 
+router.get('/discounts/_GetAll/distributor', distributorController.getAllDistributorsDetails);
+
 module.exports = router;

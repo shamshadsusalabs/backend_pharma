@@ -1,11 +1,14 @@
 const express = require('express');
-const { triggerExpiryCheck, getExpiryAlertsByUser } = require('../Contoller/ExpiryAlert'); // Import the controller functions
+const authenticateToken = require("../MiddleWare/authMiddleware");
+const { triggerExpiryCheck, getExpiryAlertsByUser,countDistinctDrugAlerts } = require('../Contoller/ExpiryAlert'); // Import the controller functions
 const router = express.Router();
 
 // Route to trigger expiry alerts check manually
-router.post('/trigger-expiry-check', triggerExpiryCheck);
+router.post('/trigger-expiry-check',authenticateToken, triggerExpiryCheck);
 
 // Route to fetch expiry alerts for a specific user by userId
-router.get('/expiry/user/:userId', getExpiryAlertsByUser);
+router.get('/expiry/user/:userId',authenticateToken, getExpiryAlertsByUser);
+
+router.get('/count-drug-expiry-alerts/:userId',authenticateToken, countDistinctDrugAlerts);
 
 module.exports = router;

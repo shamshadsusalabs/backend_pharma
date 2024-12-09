@@ -4,9 +4,100 @@ const path = require('path');
 const cloudinary = require('cloudinary').v2;
 const File = require('../Schema/File');
 
+// Assuming User model is in models folder
+const jwt = require('jsonwebtoken');
+
+const getUsersByContactNumber = async (req, res) => {
+    try {
+        const { ContactNumber } = req.params;  // Extract ContactNumber from URL parameters
+
+        // Check if ContactNumber is provided
+        if (!ContactNumber) {
+            return res.status(400).json({ message: 'Contact number is required in the URL.' });
+        }
+
+        // Clean and validate the contact number
+        const cleanContactNumber = ContactNumber.trim();
+        if (!/^\d{10}$/.test(cleanContactNumber)) {
+            return res.status(400).json({ message: 'Invalid contact number format. Please provide a 10-digit number.' });
+        }
+
+        console.log("Searching for users with ContactNumber:", cleanContactNumber);
+
+        // Find all users with the given contact number
+        const users = await File.find({ ContactNumber: cleanContactNumber });
+        if (users.length === 0) {
+            console.log("No users found with ContactNumber:", cleanContactNumber);
+            return res.status(404).json({ message: 'No users found with this contact number.' });
+        }
+
+        // Return the complete user data for all matching users
+        console.log("Users found:", users);
+        res.status(200).json({
+            message: 'Users found successfully',
+            users: users,  // Return entire user objects
+        });
+
+    } catch (err) {
+        console.error("Error occurred while fetching users:", err);
+        res.status(500).json({ message: 'Server error, please try again later.' });
+    }
+};
+// For generating JWT tokens (optional, for session management)
+const loginWithContactNumber = async (req, res) => {
+    try {
+        console.log("Request body received:", req.body);
+
+        const { ContactNumber } = req.body;
+        if (!ContactNumber) {
+            return res.status(400).json({ message: 'Contact number is required.' });
+        }
+
+        const cleanContactNumber = ContactNumber.trim();
+        if (!/^\d{10}$/.test(cleanContactNumber)) {
+            return res.status(400).json({ message: 'Invalid contact number format.' });
+        }
+
+        console.log("Attempting to find user with ContactNumber:", cleanContactNumber);
+        const user = await File.findOne({ ContactNumber: cleanContactNumber });
+        if (!user) {
+            console.log("No user found with ContactNumber:", cleanContactNumber);
+            return res.status(404).json({ message: 'No user found with this contact number.' });
+        }
+
+        console.log("User found:", user);
+        const token = jwt.sign({ userId: user._id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1d' });
+        console.log("JWT token generated:", token);
+
+        res.cookie('access_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 24 * 60 * 60 * 1000,
+            sameSite: 'Strict',
+        });
+
+        res.status(200).json({
+            message: 'Login successful',
+            user: {
+                id: user._id,
+                patientName: user.patientName,
+                ContactNumber:user.ContactNumber
+
+            },
+        });
+
+    } catch (err) {
+        console.error("Error occurred:", err);
+        res.status(500).json({ message: 'Server error, please try again later.' });
+    }
+};
+
+
+
+
 const savingBillFile = async (req, res) => {
     try {
-        const { patientName, doctorName, AdharCardNumber, date, address, ContactNumber, gst, discount, totalAmount, rows, userId, userDetails } = req.body;
+        const { patientName, doctorName, AdharCardNumber, date, address, ContactNumber, gst, paymentMode, discount, totalAmount, rows, userId, userDetails } = req.body;
 
         // Generate the HTML content using the provided data
         let htmlContent = `
@@ -183,6 +274,10 @@ const savingBillFile = async (req, res) => {
 
                     <div class="totals">
                         <table>
+                         <tr>
+                                <th>PaymentMode</th>
+                                <td>${paymentMode}</td>
+                            </tr>
                             <tr>
                                 <th>Total Amount</th>
                                 <td>${totalAmount}</td>
@@ -239,6 +334,7 @@ const savingBillFile = async (req, res) => {
             patientName:  patientName,
             AdharCardNumber: AdharCardNumber,
             date: date,
+            paymentMode: paymentMode,
             ContactNumber:ContactNumber
         });
 
@@ -279,5 +375,8 @@ const getInvoicesByUserId = async (req, res) => {
 
 module.exports = {
     savingBillFile,
-    getInvoicesByUserId, // Export the new function
+    getInvoicesByUserId,
+ loginWithContactNumber,
+ getUsersByContactNumber 
+    // Export the new function
 };

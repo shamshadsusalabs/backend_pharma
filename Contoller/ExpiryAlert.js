@@ -1,7 +1,7 @@
 const Store = require('../Schema/Store'); // Import the Store schema
 const StockAlert = require('../Schema/ExpiryAlert'); // Import the StockAlert schema
 const cron = require('node-cron'); // Import node-cron for scheduled tasks
-
+const mongoose = require("mongoose");
 // Function to check expiry alerts
 const checkExpiryAlerts = async () => {
   try {
@@ -99,4 +99,50 @@ const getExpiryAlertsByUser = async (req, res) => {
   }
 };
 
-module.exports = { checkExpiryAlerts, triggerExpiryCheck, getExpiryAlertsByUser };
+
+const countDistinctDrugAlerts = async (req, res) => {
+  try {
+      // Extract userId from the URL parameter
+      const { userId } = req.params;
+
+      // Validate userId
+      if (!userId) {
+          return res.status(400).json({ message: 'userId is required.' });
+      }
+
+      // Query the database to find all documents for the given userId
+      const result = await StockAlert.aggregate([
+          // Match documents based on userId
+          {
+              $match: {
+                  userId: new mongoose.Types.ObjectId(userId),  // Use 'new' keyword here
+              },
+          },
+          // Group by drugCode to count only distinct drugCodes
+          {
+              $group: {
+                  _id: "$drugCode",  // Group by drugCode only
+              },
+          },
+          // Count the distinct drugCodes
+          {
+              $count: "totalCountExpiry",  // Count how many distinct drugCodes are there
+          }
+      ]);
+
+      // If no results found
+      if (result.length === 0) {
+          return res.status(404).json({ message: 'No documents found for the provided userId.' });
+      }
+
+      // Send the distinct drug code count
+      return res.status(200).json({
+        totalCountExpiry: result[0]. totalCountExpiry,
+      });
+  } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+module.exports = { checkExpiryAlerts, triggerExpiryCheck, getExpiryAlertsByUser,countDistinctDrugAlerts  };

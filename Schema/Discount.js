@@ -7,6 +7,14 @@ const discountSchema = new Schema({
     type: String,
     required: true
   },
+  drugName:{
+     type: String,
+    required: true
+  },
+  contactNumber:{
+    type: String,
+    required: true
+  },
   discount: {
     type: Number,
     required: true,

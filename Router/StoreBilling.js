@@ -9,4 +9,13 @@ router.get('/billing/:id', billingController.getBillingById); // Get billing by 
 router.put('/billing/:id', billingController.updateBilling); // Update billing by ID
 router.delete('/billing/:id', billingController.deleteBilling); // Delete billing by ID
 router.get('/billings/userId/:userId', billingController.getBillingsByUserId);
-module.exports = router;
+
+router.get('/billing/unpaid/:userId', billingController.getUnpaidBillingByUserId);
+
+router.get('/billing/revenue/:userId', billingController.getRevenueForCurrentMonth);
+
+router.post('/billing/send-message', billingController.sendMessage);
+router.get('/billing/get-unpaid-billings-notifications/:contactNumber',billingController.getUnpaidBillingWithMessage);
+
+router.get('/billing/invoices/:userId',  billingController.getInvoicesByUserIdAndMonth);
+module.exports = router; 

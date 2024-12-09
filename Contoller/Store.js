@@ -7,6 +7,109 @@ const path = require("path");
 const Store = require("../Schema/Store");
 const mongoose = require("mongoose");
 
+
+ // Adjust the model import to your setup
+
+// Controller to get the total count of distributorSupplied objects for a given userID
+exports.getDistributorSuppliedCount = async (req, res) => {
+  try {
+    // Retrieve userID from the request params
+    const userID = req.params.userID;
+
+    // Check if userID is provided
+    if (!userID) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    // Query to find all records for the given userID
+    const records = await Store.find({ user: userID });
+
+    // Check if no records were found for the provided userID
+    if (records.length === 0) {
+      return res.status(404).json({ message: 'No records found for the provided userID' });
+    }
+
+    // Calculate the total count of distributorSupplied objects
+    const totalCount = records.reduce((count, record) => {
+      return count + (record.distributorSupplied ? record.distributorSupplied.length : 0);
+    }, 0);
+
+    // Send the total count in the response
+    res.status(200).json({ totalTypeofdrugs: totalCount });
+
+  } catch (err) {
+    console.error('Error fetching records:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+exports.getExpiringDrugs = async (req, res) => {
+  try {
+    const { userId } = req.params;
+   
+
+    // Validate userId
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+   
+      return res.status(400).json({ message: "Valid User ID is required" });
+    }
+ 
+
+    // Get current date and set it to midnight (start of the day)
+    const currentDate = new Date();
+    currentDate.setUTCHours(0, 0, 0, 0);  // Midnight of today
+
+
+    // Calculate the first day of next month
+    const nextMonthStart = new Date(currentDate);
+    nextMonthStart.setMonth(currentDate.getMonth() + 1);
+    nextMonthStart.setUTCDate(1); // Set date to first of the next month
+    nextMonthStart.setUTCHours(0, 0, 0, 0);  // Midnight of next month
+  
+
+ 
+    const stores = await Store.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
+      { $unwind: "$distributorSupplied" },
+      {
+        $match: {
+          $or: [
+            {
+              "distributorSupplied.expiryDate": { $lt: currentDate }  // Already expired
+            },
+            {
+              "distributorSupplied.expiryDate": {
+                $gte: currentDate,  // Expiry date after or equal to today
+                $lt: nextMonthStart  // Expiry date before the start of next month
+              }
+            }
+          ]
+        }
+      },
+      { $project: { _id: 0, drug: "$distributorSupplied" } }  // Project the drug information
+    ]);
+
+
+    // Return empty array if no drugs found
+    if (stores.length === 0) {
+      console.log("No expiring or expired drugs found.");
+      return res.status(200).json([]);  // Empty array response
+    }
+
+   
+    res.status(200).json(stores.map(store => store.drug));
+  } catch (error) {
+ 
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+
+
+
+
 exports.getDynamicDrugs = async (req, res) => {
   const { userId } = req.params; // Extract userId from URL params
   
@@ -277,58 +380,7 @@ const escapeRegex = (text) => {
 
 
 
-exports.getExpiringDrugs = async (req, res) => {
-  try {
-    const { userId } = req.params;
 
-    // Validate userId (Check if it's a valid MongoDB ObjectId)
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: "Valid User ID is required" });
-    }
-
-    // Get current date (today) in UTC format
-    const currentDate = new Date();
-    currentDate.setUTCHours(0, 0, 0, 0);  // Set time to midnight for today
-
-    // Calculate the date 1 month from today
-    const oneMonthFromNow = new Date(currentDate);
-    oneMonthFromNow.setMonth(currentDate.getMonth() + 1);
-    oneMonthFromNow.setUTCHours(23, 59, 59, 999); // Set time to end of day for next month
-
-    // Find stores with expired drugs or drugs expiring within the next month for the given user
-    const stores = await Store.aggregate([
-      { $match: { user: new mongoose.Types.ObjectId(userId) } },  // Match user
-      { $unwind: "$distributorSupplied" },  // Unwind the distributorSupplied array
-      { 
-        $match: {
-          $or: [
-            {
-              "distributorSupplied.expiryDate": { $lt: currentDate }  // Expired drugs
-            },
-            {
-              "distributorSupplied.expiryDate": { 
-                $gte: currentDate,  // Expiry date after or equal to today
-                $lt: oneMonthFromNow // Expiry date before the end of the next month
-              }
-            }
-          ]
-        }
-      },
-      { $project: { _id: 0, drug: "$distributorSupplied" } }  // Project the drug information
-    ]);
-
-    // Instead of 404, return 200 with an empty array if no expiring or expired drugs are found
-    if (stores.length === 0) {
-      return res.status(200).json([]);  // Return empty array with 200 status
-    }
-
-    // Send the found expiring or expired drugs
-    res.status(200).json(stores.map(store => store.drug));
-  } catch (error) {
-    console.error("Error fetching expiring drugs:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
 
 
 exports.getLowStockDrugs = async (req, res) => {

@@ -15,6 +15,10 @@ const drugSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  strip:{
+    type: Number,
+    required: true
+  },
   mrp: {
     type: Number,
     required: true
@@ -56,6 +60,13 @@ const billingSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  paymentMode:{
+    type: String,
+    required: false
+  },
+ Unpaidmessage:{
+  type:String
+ },
   rows: [drugSchema], // Array of drug rows
   userId: {
     type: String, // The ID of the user (could be a reference to a User model)

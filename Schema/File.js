@@ -19,6 +19,7 @@ const fileSchema = new mongoose.Schema({
         type: String,
         required: true,  // You can set this as optional based on your requirements
     },
+    paymentMode:{type: String},
     patientName: { type: String },
     AdharCardNumber: { type: String },
     date: { type: Date },

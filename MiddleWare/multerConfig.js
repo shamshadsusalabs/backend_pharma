@@ -7,7 +7,7 @@ const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
         folder: "temp", // Folder where files will be stored in Cloudinary (no leading slash)
-        allowed_formats: ["jpg", "jpeg", "png", "gif", "pdf"], // Allowed file formats
+        allowed_formats: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "svg", "pdf"], // Allowed file formats
     },
 });
 

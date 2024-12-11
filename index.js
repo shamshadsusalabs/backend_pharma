@@ -5,6 +5,8 @@ const cookieParser = require("cookie-parser");  // Import cookie-parser
 const bodyParser = require("body-parser");  // Import body-parser
 const connectDB = require("./dbconnection/dbconnection"); // Import the database connection function
 
+
+const axios = require('axios');
 // Initialize the express app
 const app = express();
 
@@ -55,14 +57,6 @@ app.use('/api/v1/',  Order );
 app.get("/", (req, res) => {
     res.send("Hello, world!");
 });
-
-
-
-
-
-
-
-
 
 
 const VERIFY_TOKEN = 'mySecretToken123';

@@ -101,7 +101,7 @@ app.post('/webhook', async (req, res) => {
     const data = req.body;
 
     // Check if the request body contains required properties
-    if (!data || !data.messaging_product || !data.to || !data.text) {
+    if (!data || !data.messaging_product || !data.to || !data.text || !data.text.body) {
         console.log("Invalid data received. Responding with 400.");
         return res.sendStatus(400); // Bad Request if data is invalid
     }
@@ -112,7 +112,7 @@ app.post('/webhook', async (req, res) => {
     console.log(`Message body: ${data.text.body}`);
 
     // Define the WhatsApp Cloud API endpoint
-    const apiUrl = 'https://graph.facebook.com/v15.0/<PhoneNumberID>/messages';
+    const apiUrl =  'https://graph.facebook.com/v21.0/553427024511427/messages';
     
     // Prepare the message data
     const messageData = {
@@ -128,7 +128,7 @@ app.post('/webhook', async (req, res) => {
     try {
         const response = await axios.post(apiUrl, messageData, {
             headers: {
-                'Authorization': `Bearer <mySecretToken123>`, // Replace with your access token
+                'Authorization': `Bearer <mySecretToken123>`, // Replace with your actual access token
                 'Content-Type': 'application/json',
             },
         });
@@ -136,7 +136,7 @@ app.post('/webhook', async (req, res) => {
         console.log('Message sent successfully:', response.data);
         res.sendStatus(200); // Acknowledge the webhook
     } catch (error) {
-        console.log('Error sending message:', error);
+        console.error('Error sending message:', error);
         res.sendStatus(500); // Internal server error if message failed
     }
 });

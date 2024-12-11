@@ -121,8 +121,16 @@ async function sendWhatsAppMessage(to, message) {
         "Content-Type": "application/json",
     };
 
-    return axios.post(WHATSAPP_API_URL, payload, { headers });
+    try {
+        const response = await axios.post(WHATSAPP_API_URL, payload, { headers });
+        console.log("WhatsApp API Response:", response.data); // Log the full response
+        return response.data;
+    } catch (error) {
+        console.error("Error Response:", error.response?.data || error.message);
+        throw error;
+    }
 }
+
 
 
 // Start the server

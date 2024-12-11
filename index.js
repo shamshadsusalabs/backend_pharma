@@ -71,27 +71,44 @@ const VERIFY_TOKEN = 'mySecretToken123';
 
 // Handle GET request to verify webhook
 app.get('/webhook', (req, res) => {
+    console.log("Webhook GET request received");
+    console.log("Query parameters:", req.query);
+
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
+    console.log("Mode:", mode);
+    console.log("Token:", token);
+    console.log("Challenge:", challenge);
+
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-        // Respond with the challenge code if tokens match
+        console.log("Tokens matched. Responding with challenge.");
         res.status(200).send(challenge);
     } else {
-        // Respond with 403 Forbidden if the token doesn't match
+        console.log("Tokens did not match. Responding with 403.");
         res.sendStatus(403);
     }
 });
 
-// Handle POST request to receive incoming WhatsApp messages or updates
 app.post('/webhook', (req, res) => {
+    console.log("Webhook POST request received");
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+
     const data = req.body;
-    console.log('Received webhook data:', data);
-    
+
+    if (!data || !data.object) {
+        console.log("Invalid data received. Responding with 400.");
+        return res.sendStatus(400); // Bad Request if data is invalid
+    }
+
+    console.log("Valid webhook data received:", JSON.stringify(data, null, 2));
+
     // Process the incoming data (like message status, etc.)
     res.sendStatus(200); // Acknowledge the webhook
+    console.log("Acknowledged the webhook with 200 status.");
 });
+
 // Start the server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

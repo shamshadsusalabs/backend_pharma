@@ -16,4 +16,9 @@ router.delete('/discounts/:_id', authenticateToken,distributorController.deleteD
 
 router.get('/discounts/_GetAll/distributor',authenticateToken, distributorController.getAllDistributorsDetails);
 
+router.get('/discounts/_GetAll/Brand',authenticateToken, distributorController.getAllBrandDetails);
+
+router.get("/discounts/distributors/count",  distributorController.countDistributors);
+router.get("/discounts/brands/count",  distributorController.countBrands);
+
 module.exports = router;

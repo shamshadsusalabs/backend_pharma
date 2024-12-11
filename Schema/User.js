@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
     profile: {
         type: String,
         required: true,
+        index: true,
         enum: ["Store", "Brand", "Distributor"],
     },
     name: {
@@ -88,5 +89,17 @@ userSchema.statics.generateAccessToken = function(user) {
     );
 };
 
+
+userSchema.pre("updateOne", async function(next) {
+    try {
+        const update = this.getUpdate();
+        if (update.password) {
+            update.password = await bcrypt.hash(update.password, 10);
+        }
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
 // Create User model
 module.exports = mongoose.model("User", userSchema);

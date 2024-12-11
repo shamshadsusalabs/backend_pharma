@@ -1,5 +1,21 @@
 const Distributor = require('../Schema/Discount');
+exports.countDistributors = async (req, res) => {
+  try {
+    const distributorCount = await Distributor.countDocuments({ profile: "Distributor" });
+    res.status(200).json({ profile: "Distributor", count: distributorCount });
+  } catch (error) {
+    res.status(500).json({ message: "Error counting distributors", error });
+  }
+};
 
+exports.countBrands = async (req, res) => {
+  try {
+    const brandCount = await  Distributor.countDocuments({ profile: "Brand" });
+    res.status(200).json({ profile: "Brand", count: brandCount });
+  } catch (error) {
+    res.status(500).json({ message: "Error counting brands", error });
+  }
+};
 // Distributor model import
 exports.getAllDistributorsDetails = async (req, res) => {
   try {
@@ -23,7 +39,26 @@ exports.getAllDistributorsDetails = async (req, res) => {
 };
 
 
+exports.getAllBrandDetails = async (req, res) => {
+  try {
+    // Find all distributors where profile is 'Distributor' (case-insensitive)
+    const distributors = await Distributor.find({ 
+      profile: { $regex: '^Brand$', $options: 'i' } 
+    }).sort({ createdAt: -1 });
 
+  
+
+    if (!distributors.length) {
+      console.log('No distributors found in the database');
+      return res.status(404).json({ message: 'No hvfh found' });
+    }
+
+    res.status(200).json(distributors);
+  } catch (error) {
+    console.error('Error fetching distributors:', error);
+    res.status(500).json({ message: 'Error fetching distributors', error });
+  }
+};
 
  
 

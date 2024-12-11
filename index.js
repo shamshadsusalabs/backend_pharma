@@ -56,6 +56,42 @@ app.get("/", (req, res) => {
     res.send("Hello, world!");
 });
 
+
+
+
+
+
+
+
+
+
+const VERIFY_TOKEN = 'mySecretToken123';
+
+
+
+// Handle GET request to verify webhook
+app.get('/webhook', (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+        // Respond with the challenge code if tokens match
+        res.status(200).send(challenge);
+    } else {
+        // Respond with 403 Forbidden if the token doesn't match
+        res.sendStatus(403);
+    }
+});
+
+// Handle POST request to receive incoming WhatsApp messages or updates
+app.post('/webhook', (req, res) => {
+    const data = req.body;
+    console.log('Received webhook data:', data);
+    
+    // Process the incoming data (like message status, etc.)
+    res.sendStatus(200); // Acknowledge the webhook
+});
 // Start the server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

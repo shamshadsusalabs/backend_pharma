@@ -379,6 +379,214 @@ const escapeRegex = (text) => {
 // Function to dynamically get drugs based on userId and search terms (drug names or drug codes)
 
 
+exports.updateStore = async (req, res) => {
+  try {
+    const { user, supplier, distributorSupplied } = req.body;
+
+
+
+    // Step 1: Find the existing store by user ID
+    const store = await Store.findOne({ user: req.body.user });
+
+    // Check if store exists
+    if (!store) {
+      return res.status(404).json({ message: 'Store not found' });
+    }
+    
+    // Loop through received supplier data and match it with the existing data
+    req.body.supplier.forEach(newSupplier => {
+      const existingSupplier = store.supplier.find(s => s.supplierName === newSupplier.supplierName);
+      
+      if (!existingSupplier) {
+        // If supplier does not exist, add it
+        store.supplier.push(newSupplier);
+      } else {
+        // Update existing supplier if needed
+        existingSupplier.contactNumber = newSupplier.contactNumber;
+        existingSupplier.type = newSupplier.type;
+      }
+    });
+    
+    // Loop through received distributorSupplied data and match it with the existing data
+    req.body.distributorSupplied.forEach(newDrug => {
+      const existingDrug = store.distributorSupplied.find(d => d.drugCode === newDrug.drugCode);
+      
+      if (!existingDrug) {
+        // If drug does not exist, add it
+        store.distributorSupplied.push(newDrug);
+      } else {
+        // Update existing drug if needed
+        existingDrug.stock += newDrug.stock; // For example, increasing stock
+        existingDrug.price = newDrug.price;  // Update price with the new price
+        existingDrug.perStripPrice = newDrug.perStripPrice; // Update per strip price
+        existingDrug.strip += newDrug.strip; // Add the new strip value
+      }
+    });
+    
+    // Save the updated store
+    await store.save();
+    
+    
+    
+    
+    // Step 4: Generate HTML content
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Purchase Invoice</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: #f8f9fa;
+            }
+            .container {
+                max-width: 900px;
+                margin: 20px auto;
+                padding: 20px;
+                background-color: #fff;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                border-radius: 5px;
+            }
+            h1 {
+                text-align: center;
+                color: #333;
+                margin-bottom: 20px;
+            }
+            .section {
+                margin-bottom: 20px;
+            }
+            .section h2 {
+                font-size: 18px;
+                color: #555;
+                border-bottom: 2px solid #ddd;
+                padding-bottom: 5px;
+                margin-bottom: 10px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+            }
+            th, td {
+                padding: 8px;
+                text-align: left;
+                border: 1px solid #ddd;
+            }
+            th {
+                background-color: #f4f4f4;
+                color: #333;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Supplier and Distributor Details</h1>
+            
+            <div class="section">
+                <h2>Supplier Details</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Supplier Name</th>
+                            <th>Type</th>
+                            <th>Contact Number</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${supplier.map(sup => `
+                            <tr>
+                                <td>${sup.supplierName}</td>
+                                <td>${sup.type}</td>
+                                <td>${sup.contactNumber}</td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>Distributor Supplied Details</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Drug Name</th>
+                            <th>Drug Code</th>
+                            <th>Batch Number</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Expiry Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${distributorSupplied.map(dist => `
+                            <tr>
+                                <td>${dist.drugName}</td>
+                                <td>${dist.drugCode}</td>
+                                <td>${dist.batchNumber}</td>
+                                <td>${dist.price}</td>
+                                <td>${dist.stock}</td>
+                                <td>${dist.expiryDate}</td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </body>
+    </html>`;
+
+    console.log("Generated HTML content");
+
+    // Step 5: Create a temporary HTML file
+    const tempFilePath = path.join(
+      os.tmpdir(),
+      `supplier_distributor_${Date.now()}.html`
+    );
+    fs.writeFileSync(tempFilePath, htmlContent);
+    console.log("HTML file written to temporary path");
+
+    // Step 6: Upload the file to Cloudinary
+    const cloudinaryResponse = await cloudinary.uploader.upload(tempFilePath, {
+      resource_type: "auto",
+      folder: "supplier_distributor_files",
+    });
+
+    const fileUrl = cloudinaryResponse.secure_url;
+
+    // Step 7: Save file metadata to the PurchaseFile schema
+    const purchaseFile = new PurchaseFile({
+      userId: user,
+      fileUrl,
+      fileName: `supplier_distributor_${Date.now()}.html`,
+      date: new Date(),
+    });
+
+    await purchaseFile.save();
+ 
+
+    // Cleanup: Delete the temporary file
+    fs.unlinkSync(tempFilePath);
+  
+
+    // Step 8: Save the updated store data
+    await store.save();
+
+
+    res.status(200).json({
+      message: "Store updated and file saved successfully",
+      store,
+      fileUrl,
+    });
+  } catch (error) {
+    console.error("Error updating store and file:", error);
+    res.status(500).json({ message: "Error updating store and file", error: error.message });
+  }
+};
+
+
 
 
 
@@ -551,21 +759,7 @@ exports.getStoreById = async (req, res) => {
   }
 };
 
-// Update a store
-exports.updateStore = async (req, res) => {
-  try {
-    const store = await Store.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    if (!store) {
-      return res.status(404).json({ message: "Store not found" });
-    }
-    res.status(200).json({ message: "Store updated successfully", store });
-  } catch (error) {
-    res.status(400).json({ message: "Error updating store", error: error.message });
-  }
-};
+
 
 // Delete a store
 exports.deleteStore = async (req, res) => {

@@ -66,57 +66,69 @@ app.get("/", (req, res) => {
 
 
 const VERIFY_TOKEN = 'mySecretToken123';
+const WHATSAPP_API_URL = 'https://graph.facebook.com/v21.0/553427024511427/messages';
+const ACCESS_TOKEN = 'EAAYnF4PjkZA8BO1P5sZBkaTu6YaAa3LVw8KzyR0CcfceD8k7oPYNvC2N8HaGr0lGbRq2XVucnOHjY6l5aVltKBNwIQGYSD7JzspRM5IgdZBOHtZBDkBjiyVOaFZBRNjTwhPty003PspFhTDEF0ZABRaxYtiEmZCQuF67IruTD2ZB9AR6XhGRPVfRHTR7ZClCdGcBypvrQni4D1fWh1cKnWdHrz7OQCujz0mf9zmgZD';
+ // Replace with your Cloud API access token
 
+app.use(express.json()); // Middleware to parse JSON request bodies
 
-
-// Handle GET request to verify webhook
+// Webhook verification (GET)
 app.get('/webhook', (req, res) => {
-    console.log("Webhook GET request received");
-    console.log("Query parameters:", req.query);
-
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    console.log("Mode:", mode);
-    console.log("Token:", token);
-    console.log("Challenge:", challenge);
-
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-        console.log("Tokens matched. Responding with challenge.");
+        console.log("Webhook verified successfully.");
         res.status(200).send(challenge);
     } else {
-        console.log("Tokens did not match. Responding with 403.");
+        console.log("Webhook verification failed.");
         res.sendStatus(403);
     }
 });
 
-app.post('/webhook', (req, res) => {
+// Handle incoming webhook (POST) and send a message
+app.post('/webhook', async (req, res) => {
     console.log("Webhook POST request received");
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-
     const data = req.body;
 
-    // Check if the request body contains required properties
-    if (!data || !data.messaging_product || !data.to || !data.text) {
-        console.log("Invalid data received. Responding with 400.");
-        return res.sendStatus(400); // Bad Request if data is invalid
+    // Validate the incoming data
+    if (!data || !data.messaging_product || !data.to || !data.text || !data.text.body) {
+        console.error("Invalid data received");
+        return res.sendStatus(400); // Bad request
     }
 
-    console.log("Valid webhook data received:");
-    console.log(`Messaging product: ${data.messaging_product}`);
-    console.log(`Recipient: ${data.to}`);
-    console.log(`Message body: ${data.text.body}`);
+    const recipient = data.to; // Recipient's WhatsApp number
+    const messageBody = data.text.body; // Message body
 
-    // Simulate processing the received message
-    console.log("Processing the webhook data...");
-
-    // Send 200 status to acknowledge
-    res.sendStatus(200);
-    console.log("Acknowledged the webhook with 200 status.");
+    console.log(`Preparing to send WhatsApp message to ${recipient}`);
+    try {
+        // Send a WhatsApp message using Cloud API
+        await sendWhatsAppMessage(recipient, messageBody);
+        console.log("Message sent successfully!");
+        res.sendStatus(200); // Acknowledge webhook
+    } catch (error) {
+        console.error("Error sending message:", error.response?.data || error.message);
+        res.sendStatus(500); // Internal Server Error
+    }
 });
 
+// Function to send WhatsApp message via Cloud API
+async function sendWhatsAppMessage(to, message) {
+    const payload = {
+        messaging_product: "whatsapp",
+        to: to,
+        type: "text",
+        text: { body: message },
+    };
 
+    const headers = {
+        Authorization: `Bearer ${ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+    };
+
+    return axios.post(WHATSAPP_API_URL, payload, { headers });
+}
 
 
 // Start the server

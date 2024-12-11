@@ -97,17 +97,25 @@ app.post('/webhook', (req, res) => {
 
     const data = req.body;
 
-    if (!data || !data.object) {
+    // Check if the request body contains required properties
+    if (!data || !data.messaging_product || !data.to || !data.text) {
         console.log("Invalid data received. Responding with 400.");
         return res.sendStatus(400); // Bad Request if data is invalid
     }
 
-    console.log("Valid webhook data received:", JSON.stringify(data, null, 2));
+    console.log("Valid webhook data received:");
+    console.log(`Messaging product: ${data.messaging_product}`);
+    console.log(`Recipient: ${data.to}`);
+    console.log(`Message body: ${data.text.body}`);
 
-    // Process the incoming data (like message status, etc.)
-    res.sendStatus(200); // Acknowledge the webhook
+    // Simulate processing the received message
+    console.log("Processing the webhook data...");
+
+    // Send 200 status to acknowledge
+    res.sendStatus(200);
     console.log("Acknowledged the webhook with 200 status.");
 });
+
 
 // Start the server
 const port = process.env.PORT || 3000;

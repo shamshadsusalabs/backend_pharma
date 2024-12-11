@@ -4,7 +4,7 @@ const cors = require("cors");  // Import CORS
 const cookieParser = require("cookie-parser");  // Import cookie-parser
 const bodyParser = require("body-parser");  // Import body-parser
 const connectDB = require("./dbconnection/dbconnection"); // Import the database connection function
-const axios = require('axios');
+
 // Initialize the express app
 const app = express();
 
@@ -91,17 +91,14 @@ app.get('/webhook', (req, res) => {
     }
 });
 
-
-
-
-app.post('/webhook', async (req, res) => {
+app.post('/webhook', (req, res) => {
     console.log("Webhook POST request received");
     console.log("Request body:", JSON.stringify(req.body, null, 2));
 
     const data = req.body;
 
     // Check if the request body contains required properties
-    if (!data || !data.messaging_product || !data.to || !data.text || !data.text.body) {
+    if (!data || !data.messaging_product || !data.to || !data.text) {
         console.log("Invalid data received. Responding with 400.");
         return res.sendStatus(400); // Bad Request if data is invalid
     }
@@ -111,35 +108,16 @@ app.post('/webhook', async (req, res) => {
     console.log(`Recipient: ${data.to}`);
     console.log(`Message body: ${data.text.body}`);
 
-    // Define the WhatsApp Cloud API endpoint
-    const apiUrl =  'https://graph.facebook.com/v21.0/553427024511427/messages';
-    
-    // Prepare the message data
-    const messageData = {
-        messaging_product: 'whatsapp',
-        to: data.to, // The recipient's phone number
-        type: 'text',
-        text: {
-            body: 'Hello, this is a test message from the webhook!',
-        },
-    };
+    // Simulate processing the received message
+    console.log("Processing the webhook data...");
 
-    // Send the message via WhatsApp Cloud API
-    try {
-        const response = await axios.post(apiUrl, messageData, {
-            headers: {
-                'Authorization': `Bearer <mySecretToken123>`, // Replace with your actual access token
-                'Content-Type': 'application/json',
-            },
-        });
-
-        console.log('Message sent successfully:', response.data);
-        res.sendStatus(200); // Acknowledge the webhook
-    } catch (error) {
-        console.error('Error sending message:', error);
-        res.sendStatus(500); // Internal server error if message failed
-    }
+    // Send 200 status to acknowledge
+    res.sendStatus(200);
+    console.log("Acknowledged the webhook with 200 status.");
 });
+
+
+
 
 // Start the server
 const port = process.env.PORT || 3000;

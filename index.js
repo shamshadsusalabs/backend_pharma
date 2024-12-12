@@ -98,7 +98,7 @@ app.post('/webhook', async (req, res) => {
         try {
             // Send message via WhatsApp API
             const response = await axios.post(
-                `  https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+                `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
                 {
                     messaging_product: 'whatsapp',
                     to: phoneNumber,

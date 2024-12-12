@@ -4,7 +4,7 @@ const billingController = require('../Contoller/StoreBilling'); // Import the co
 const authenticateToken = require("../MiddleWare/authMiddleware");
 // Routes for billing CRUD operations
 router.post('/billing', authenticateToken,billingController.createBilling); // Create billing
-router.get('/billings', authenticateToken,billingController.getAllBillings); // Get all billings
+router.get('/billings/records', authenticateToken,billingController.getAllBillings); // Get all billings
 router.get('/billing/:id', authenticateToken,billingController.getBillingById); // Get billing by ID
 router.put('/billing/:id', authenticateToken,billingController.updateBilling); // Update billing by ID
 router.delete('/billing/:id', authenticateToken,billingController.deleteBilling); // Delete billing by ID
@@ -18,4 +18,5 @@ router.post('/billing/send-message',authenticateToken, billingController.sendMes
 router.get('/billing/get-unpaid-billings-notifications/:contactNumber',authenticateToken,billingController.getUnpaidBillingWithMessage);
 
 router.get('/billing/invoices/:userId', authenticateToken, billingController.getInvoicesByUserIdAndMonth);
+
 module.exports = router; 

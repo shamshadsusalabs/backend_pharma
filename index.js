@@ -64,7 +64,7 @@ const VERIFY_TOKEN = 'mysecreat123';
 
  // Replace with your Cloud API access token
  const accessToken = 'EAAyVNTDdAiEBOZBn7h1ZAZAyQXK0OJZC5emol6SQSkruNmmnrIsrv0LorcHhQP5jfEG6eZAxMeC08h27pCTgVYM5PAdrccoUK7On9QGlUH5tZBbtrPAEU3nCtytlBhQnZCmsiLuQk1rk6mZAZBbgyBfsSZAo1h6fQN8qjQDm6BEZCpfKVR5yDnnEJZCTAIZApX1WmNuHET0sQd7ZBtBWZBPyHS1VZCotemch0lDeQqSy1bHZC'; // Replace with your Meta API access token
- const phoneNumberId = '+1 555 136 5349';
+ const phoneNumberId = '553427024511427';
 app.use(express.json()); // Middleware to parse JSON request bodies
 
 // Webhook verification (GET)
